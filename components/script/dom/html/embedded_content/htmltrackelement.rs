@@ -333,13 +333,13 @@ impl VirtualMethods for HTMLTrackElement {
                     // a URL given value, relative to the element's node document.
                     // Step 4. Set the element's track URL to trackURL if it is not failure;
                     // otherwise to the empty string.
-                    *self.track_url.borrow_mut() = if !value.is_empty() {
+                    *self.track_url.safe_borrow_mut(cx.no_gc()) = if !value.is_empty() {
                         self.owner_document().encoding_parse_a_url(value).ok()
                     } else {
                         None
                     };
                 } else {
-                    *self.track_url.borrow_mut() = None;
+                    *self.track_url.safe_borrow_mut(cx.no_gc()) = None;
                 }
 
                 if mutation.old_value(attr) !=
@@ -524,7 +524,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                         payload: vec![],
                     };
                     element.cancel_ongoing_request();
-                    *element.controller.borrow_mut() = Some(FetchController::new(
+                    *element.controller.safe_borrow_mut(cx.no_gc()) = Some(FetchController::new(
                         request.id,
                         false,
                         global.core_resource_thread(),
@@ -538,7 +538,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     //
                     // This is the "URL is the empty string" case
                     element.is_running_processing_model_algorithm.set(false);
-                    *element.controller.borrow_mut() = None;
+                    *element.controller.safe_borrow_mut(cx.no_gc()) = None;
                     element.fire_error_event_during_fetching();
                 }
                 // Step 11. Wait until the text track readiness state is no longer set to loading.
@@ -679,7 +679,7 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
                     .networking_task_source()
                     .queue(task!(successfully_loaded: move |cx| {
                         let track = track.root();
-                        *track.last_successful_load.borrow_mut() = Some(url);
+                        *track.last_successful_load.safe_borrow_mut(cx.no_gc()) = Some(url);
                         track.readiness_state.set(TextTrackReadinessState::Loaded);
                         track.upcast::<EventTarget>().fire_event(cx, atom!("load"));
                     }));
@@ -693,7 +693,7 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
                 element.fire_error_event_during_fetching();
             }
         }
-        *element.controller.borrow_mut() = None;
+        *element.controller.safe_borrow_mut(cx.no_gc()) = None;
         element.is_running_processing_model_algorithm.set(false);
         network_listener::submit_timing(cx, global, &self, &status, &timing);
     }
